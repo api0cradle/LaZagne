@@ -50,15 +50,16 @@ class JsonDatabase(Credentials):
 		super(JsonDatabase, self).__init__(db)
 	
 	def __iter__(self):
-		with open(self.db) as fh:
-			data = json.load(fh)
-			try:
-				logins = data["logins"]
-			except:
-				raise Exception("Unrecognized format in {0}".format(self.db))
-			
-			for i in logins:
-				yield (i["hostname"], i["encryptedUsername"],	i["encryptedPassword"])
+		if os.path.exists(self.db):
+			with open(self.db) as fh:
+				data = json.load(fh)
+				try:
+					logins = data["logins"]
+				except:
+					raise Exception("Unrecognized format in {0}".format(self.db))
+				
+				for i in logins:
+					yield (i["hostname"], i["encryptedUsername"],	i["encryptedPassword"])
 
 class SqliteDatabase(Credentials):
 	def __init__(self, profile):
@@ -82,7 +83,7 @@ class Mozilla(ModuleInfo):
 	# b = brute force attack
 	# m = manually
 	# d = default list
-	# a = dictionnary attack
+	# a = dictionary attack
 
 	def __init__(self, isThunderbird = False):
 		
@@ -90,7 +91,7 @@ class Mozilla(ModuleInfo):
 
 		self.toCheck = []
 		self.manually_pass = None
-		self.dictionnary_path = None
+		self.dictionary_path = None
 		self.number_toStop = None
 
 		self.key3 = ''
@@ -126,7 +127,7 @@ class Mozilla(ModuleInfo):
 			self.toCheck.append('m')
 		
 		if constant.path:
-			self.dictionnary_path = constant.path
+			self.dictionary_path = constant.path
 			self.toCheck.append('a')
 		
 		if constant.bruteforce:
@@ -329,17 +330,20 @@ class Mozilla(ModuleInfo):
 	# ------------------------------ Master Password Functions ------------------------------
 	
 	def is_masterpassword_correct(self, masterPassword=''):
-		#see http://www.drh-consultancy.demon.co.uk/key3.html
-		pwdCheck = self.key3['password-check']	
-		entrySaltLen = ord(pwdCheck[1])
-		entrySalt = pwdCheck[3: 3+entrySaltLen]
-		encryptedPasswd = pwdCheck[-16:]
-		globalSalt = self.key3['global-salt']
-		cleartextData = self.decrypt3DES( globalSalt, masterPassword, entrySalt, encryptedPasswd )
-		if cleartextData != 'password-check\x02\x02':
-			return ('', '', '')
+		try:
+			#see http://www.drh-consultancy.demon.co.uk/key3.html
+			pwdCheck = self.key3['password-check']	
+			entrySaltLen = ord(pwdCheck[1])
+			entrySalt = pwdCheck[3: 3+entrySaltLen]
+			encryptedPasswd = pwdCheck[-16:]
+			globalSalt = self.key3['global-salt']
+			cleartextData = self.decrypt3DES( globalSalt, masterPassword, entrySalt, encryptedPasswd )
+			if cleartextData != 'password-check\x02\x02':
+				return ('', '', '')
 
-		return (globalSalt, masterPassword, entrySalt)
+			return (globalSalt, masterPassword, entrySalt)
+		except:
+			return ('', '', '')
 	
 	# Retrieve masterpassword
 	def found_masterpassword(self):
@@ -353,19 +357,19 @@ class Mozilla(ModuleInfo):
 			else:
 				print_debug('WARNING', 'The Master password entered is not correct')
 		
-		# dictionnary attack
+		# dictionary attack
 		if 'a' in self.toCheck:
 			try:
-				pass_file = open(self.dictionnary_path, 'r')
+				pass_file = open(self.dictionary_path, 'r')
 				num_lines = sum(1 for line in pass_file)
 			except:
-				print_debug('ERROR', 'Unable to open passwords file: %s' % str(self.dictionnary_path))
+				print_debug('ERROR', 'Unable to open passwords file: %s' % str(self.dictionary_path))
 				return False
 			pass_file.close()
 			
 			print_debug('ATTACK', 'Dictionnary Attack !!! (%s words)' % str(num_lines))
 			try:
-				with open(self.dictionnary_path) as f:
+				with open(self.dictionary_path) as f:
 					for p in f:
 						if self.is_masterpassword_correct(p.strip())[0]:
 							print_debug('FIND', 'Master password found: %s' % p.strip())
@@ -377,7 +381,7 @@ class Mozilla(ModuleInfo):
 			except Exception,e:
 				print_debug('DEBUG', '{0}'.format(e))
 
-			print_debug('WARNING', 'The Master password has not been found using the dictionnary attack')
+			print_debug('WARNING', 'The Master password has not been found using the dictionary attack')
 		
 		# 500 most used passwords
 		if 'd' in self.toCheck:

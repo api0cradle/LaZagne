@@ -97,7 +97,7 @@ class Network(ModuleInfo):
 							values['INFO'] = 'Error decoding the password'
 						
 						pwdFound.append(values)
-					
+			
 			# print the results
 			print_output("Generic Network", pwdFound)
 			

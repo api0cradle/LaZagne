@@ -1043,9 +1043,12 @@ class DumpSecrets:
 	def dictionaryAttack_Hash(self, hash):
 		# check using a basic dictionary list and all passwords already found
 		for word in self.wordlist:
-			generated_hash = self.create_nthash(word)
-			if generated_hash == hash:
-				return word
+			try:
+				generated_hash = self.create_nthash(word)
+				if generated_hash == hash:
+					return word
+			except:
+				pass
 		return False
 	
 	def bruteFortce_hash(self, hash):
@@ -1073,14 +1076,14 @@ class DumpSecrets:
 		return False
 	
 	# used for dictionary attack, if user specify a specific file
-	def get_dic(self, dictionnary_path):
+	def get_dic(self, dictionary_path):
 		words = []
-		if dictionnary_path:
+		if dictionary_path:
 			try:
-				dicFile = open (dictionnary_path,'r')
+				dicFile = open (dictionary_path,'r')
 			except Exception,e:
 				print_debug('DEBUG', '{0}'.format(e))
-				print_debug('ERROR', 'Unable to open passwords file: %s' % str(dictionnary_path))
+				print_debug('ERROR', 'Unable to open passwords file: %s' % str(dictionary_path))
 				return []
 			
 			for word in dicFile.readlines():
@@ -1100,12 +1103,10 @@ class DumpSecrets:
 		for item in items:
 			hash = content[item]
 			(uid, rid, lmhash, nthash) = hash.split(':')[:4]
-			
 			# add the user on the list to found weak password (login equal password)
 			self.wordlist.append(uid.encode("utf8"))
 			all_hash = '%s\r\n%s' % (all_hash, hash)
 			password = self.dictionaryAttack_Hash(nthash)
-			
 			if not password and constant.bruteforce:
 				password = self.bruteFortce_hash(nthash)
 			
@@ -1116,7 +1117,7 @@ class DumpSecrets:
 				accounts['user'] = uid
 				accounts['password'] = password
 				pwdFound.append(accounts)
-			
+		
 		values['hashes'] = all_hash
 		pwdFound.append(values)
 		return pwdFound
